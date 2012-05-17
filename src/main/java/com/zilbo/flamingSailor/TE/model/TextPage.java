@@ -4,7 +4,6 @@ import com.scottlogic.util.SortedList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.PrintStream;
@@ -32,12 +31,11 @@ public class TextPage {
     // to take into account when even/odd pages have numbers on outside pages.
     public static final int LEVENSHTEIN_DISTANCE = 6;
     // this is kind of low, but we have documents that switch between landscape&portrait
-    private static final double template_match_percent = 0.40;
+    private static final double template_match_percent = 0.30;
 
     long componentID;
     float minimumHeight;
     List<TextLine> lines;
-    //    List<MultiPartBlock> multis;
     List<TextPiece> pagePieces;
     List<Component> components;
     List<PDLink> PDLinks;
@@ -50,6 +48,7 @@ public class TextPage {
     Map<String, Map<Integer, Long>> fontCounts;
     double avgLeft = 0.0;
     double avgRight = 0.0;
+    double avgWidth = 0.0;
     long lineCount = 0;
     double charDensity = 0.0;
 
@@ -84,6 +83,7 @@ public class TextPage {
                                         Map<Integer, Double> normalizedSizes,
                                         double avgLeft,
                                         double avgRight,
+                                        double avgWidth,
                                         double charDensity,
                                         double linesPerPage) {
 
@@ -97,14 +97,33 @@ public class TextPage {
 
         for (TextLine l : lines) {
             l.categorizeLine(highestFreqSize, minFontSize, maxFontSize,
-                    normalizedFontCounts, normalizedFonts, normalizedSizes, avgLeft, avgRight, charDensity, linesPerPage);
+                    normalizedFontCounts, normalizedFonts, normalizedSizes, avgLeft, avgRight, avgWidth, charDensity, linesPerPage);
 
-               // for regular lines we would be expecting a p() of over 40%
+            // for regular lines we would be expecting a p() of over 40%
 
-        double thisHeight = l.height();
-        if (l.getLineIsRegularProbability() < 0.3 && Math.round(thisHeight) >= highestFreqSize && l.density() >= charDensity) {
-            l.setIsHeading(true);
-        }
+            double thisHeight = l.height();
+            double thisDensity = l.density();
+            if (l.getLineIsRegularProbability() < 0.3 && Math.round(thisHeight) >= highestFreqSize) {
+                if (thisDensity >= (charDensity - 0.02) || thisHeight - highestFreqSize > 2.0) {
+                    // headings usually start at the left
+                    if (l.getGeom().getMinX() < (avgLeft + (avgWidth / 10))) {
+                        l.setIsHeading(true);
+                    }
+                    // or they are in the center of the line
+                    if (l.width() < avgWidth/3){
+                        l.setIsHeading(true);
+                    }
+                    /*
+                            logger.info("Heading:Y\t"+String.format("Density %+3.2f Height: %+3.2f Prob: %3.2f %s",
+                                    thisDensity-charDensity,thisHeight-highestFreqSize,l.getLineIsRegularProbability(),
+                                    l.getText()));
+                        }    else {
+                            logger.info("Heading:N\t"+String.format("Density %+3.2f Height: %+3.2f Prob: %3.2f %s",
+                                    thisDensity-charDensity,thisHeight-highestFreqSize,l.getLineIsRegularProbability(),
+                                    l.getText()));
+                    */
+                }
+            }
 
             // gaps of 4 lines usually mean tables have ended. possible short page
 
@@ -123,6 +142,7 @@ public class TextPage {
             }
 
             previousEndY = l.getGeom().getMaxY();
+
             first = false;
             if (l.isHeading()) {
                 if (currentTable != null) {
@@ -138,6 +158,23 @@ public class TextPage {
                 }
                 components.add(l);
                 continue;
+            }
+            // a regular line.
+            if (l.getLineIsRegularProbability() > 0.4 && l.width() > avgWidth && l.density() > charDensity) {
+                if (currentTable != null) {
+                    if (currentTable.size() < 2) {
+                        for (Component c : currentTable.getChildren()) {
+                            components.add(c);
+                        }
+
+                    } else {
+                        components.add(currentTable);
+                    }
+                    currentTable = null;
+                }
+                components.add(l);
+                continue;
+
             }
             // big font is usually a section heading, not in a table
             double height = l.height();
@@ -193,14 +230,14 @@ public class TextPage {
             // low density means lots of spaces between words.
             if (l.density() < charDensity) {
                 if (currentTable == null) {
-                    currentTable = new MultiPartBlock(componentID++);
+                    currentTable = new MultiPartBlock(getNextComponentID());
                 }
                 currentTable.addChild(l);
                 continue;
             }
 
             // long line, regular size font, good density
-            if (l.getGeom().getMinX() <= avgLeft && l.getGeom().getMaxX() >= avgRight) {
+            if (l.getGeom().getWidth() >= avgWidth) {
                 if (currentTable != null) {
                     if (currentTable.size() < 2) {
                         for (Component c : currentTable.getChildren()) {
@@ -219,7 +256,7 @@ public class TextPage {
             if (l.getGeom().getMinX() > avgLeft && l.getGeom().getMaxX() < avgRight) {
 
                 if (currentTable == null) {
-                    currentTable = new MultiPartBlock(componentID++);
+                    currentTable = new MultiPartBlock(getNextComponentID());
                 }
                 currentTable.addChild(l);
                 continue;
@@ -227,7 +264,7 @@ public class TextPage {
             // just a bit on the right hand side
             if (l.getGeom().getMinX() > avgLeft) {
                 if (currentTable == null) {
-                    currentTable = new MultiPartBlock(componentID++);
+                    currentTable = new MultiPartBlock(getNextComponentID());
                 }
                 currentTable.addChild(l);
                 continue;
@@ -266,7 +303,7 @@ public class TextPage {
                     String text = l.getText();
                     if (text.contains("Table") || text.contains("Figure") || text.contains("TABLE") || text.contains("FIGURE")) {
                         if (seenTableCaption && (i - lastSplit) > 2) {
-                            MultiPartBlock mlb = new MultiPartBlock(componentID++);
+                            MultiPartBlock mlb = new MultiPartBlock(getNextComponentID());
                             for (int j = lastSplit; j < i; j++) {
                                 mlb.addChild(children.get(j));
                             }
@@ -279,7 +316,7 @@ public class TextPage {
                     }
                 }
                 if (haveSplit) {
-                    MultiPartBlock mlb = new MultiPartBlock(componentID++);
+                    MultiPartBlock mlb = new MultiPartBlock(getNextComponentID());
                     for (int j = lastSplit; j < children.size(); j++) {
                         mlb.addChild(children.get(j));
                     }
@@ -303,7 +340,7 @@ public class TextPage {
         for (TextPiece bit : pieces) {
             componentID = Math.max(componentID, bit.getID());
         }
-        componentID++;
+        getNextComponentID();
 
         shrinkPieces(pieces);
         // eventually we want to go back to JDK-lists.. and we will need this then
@@ -319,10 +356,12 @@ public class TextPage {
             avgLeft += l.getGeom().getMinX();
             avgRight += l.getGeom().getMaxX();
             charDensity += l.density();
+            avgWidth += l.getGeom().getWidth();
         }
         avgLeft /= lineCount;
         avgRight /= lineCount;
         charDensity /= lineCount;
+        avgWidth /= lineCount;
 
     }
 
@@ -383,7 +422,7 @@ public class TextPage {
         TextLine currentLine = null;
         for (TextPiece piece : pagePieces) {
             if (currentLine == null) {
-                currentLine = new TextLine(this.componentID++, piece);
+                currentLine = new TextLine(getNextComponentID(), piece);
             } else {
                 if (currentLine.onSameLine(piece)) {
                     currentLine.addChild(piece);
@@ -391,7 +430,7 @@ public class TextPage {
                     if (!currentLine.isEmpty()) {
                         lines.add(currentLine);
                     }
-                    currentLine = new TextLine(this.componentID++, piece);
+                    currentLine = new TextLine(getNextComponentID(), piece);
                 }
             }
         }
@@ -524,7 +563,7 @@ public class TextPage {
         if (fontTally != null) {
             Long tally = fontTally.get(tpHeight);
             if (tally == null) {
-                tally=0L;
+                tally = 0L;
             }
             tally -= tp.getText().length();
             if (tally <= 0) {
@@ -602,7 +641,7 @@ public class TextPage {
             }
             return true;
         } else {
-            logger.info(headerTemplateString+"\t"+topCAsString+"\t distance:" +distance);
+            //   logger.info(headerTemplateString + "\t" + topCAsString + "\t distance:" + distance);
         }
         return false;
     }
@@ -735,6 +774,10 @@ public class TextPage {
         return avgLeft;
     }
 
+    public double getAvgWidth() {
+        return avgWidth;
+    }
+
     public double getAvgRight() {
         return avgRight;
     }
@@ -752,5 +795,8 @@ public class TextPage {
         return this.lines.size();
     }
 
+    public long getNextComponentID() {
+        return componentID++;
+    }
 
 }

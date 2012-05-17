@@ -21,9 +21,10 @@ import java.util.List;
 public class pdf2Text {
     public static void main(String args[]) throws IOException {
         String filename;
-        filename= "../test/lineSortTest.pdf";
+        //filename= "../test/lineSortTest.pdf";
 
-        //filename = "../test/invertedImage.pdf";
+        filename = "../test/linedTableTest.pdf";
+        filename = "../test/imageTest.pdf";
         if (args.length > 1) {
             filename = args[0];
         }

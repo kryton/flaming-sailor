@@ -188,7 +188,6 @@ public class MultiPartBlock extends Component {
     }
 
 
-
     public int linesStartWith(String text) {
         return linesStartWith(text, true);
     }
@@ -209,4 +208,38 @@ public class MultiPartBlock extends Component {
         return count;
     }
 
+    @Override
+    public boolean isMultiLine() {
+        return true;
+    }
+
+    /**
+     * split a component's children, where 'c' is the first child of the new component.
+     * if the component is the first child, do nothing.
+     *
+     * @param newID ID# of the new component
+     * @param c     the first child of the new component.
+     * @return the new component or null if it can't split it for some reason
+     */
+    public MultiPartBlock splitComponent(long newID, Component c) {
+        int posn = this.pieces.indexOf(c);
+        if (posn < 0) {
+            return null;
+        }
+        MultiPartBlock x = new MultiPartBlock(newID);
+
+        x.pieces = new ArrayList<>();
+        //    x.id = newID;
+        x.geom = new Rectangle2D.Double();
+        x.pieces = new ArrayList<>(this.pieces.subList(posn, pieces.size()));
+        x.adjustGeom();
+        if (posn == 0) {
+            this.pieces = new ArrayList<>();
+        } else {
+            this.pieces = new ArrayList<>(this.pieces.subList(0, posn));
+        }
+        this.adjustGeom();
+        return x;
+
+    }
 }

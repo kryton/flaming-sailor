@@ -48,7 +48,9 @@ public class TestStats extends TestCase {
         page.constructPageComponents(parser.highestFreqSize,
                 parser.getMinFontSize(), parser.getMaxFontSize(),
                 parser.getNormalizedFontCounts(), parser.getNormalizedFonts(),
-                parser.getNormalizedSizes(), parser.getDocAvgLeft(), parser.getDocAvgRight(), parser.getDocCharDensity(), parser.getLinesPerPage());
+                parser.getNormalizedSizes(),
+                parser.getDocAvgLeft(), parser.getDocAvgRight(),  parser.getDocAvgWidth(),
+                parser.getDocCharDensity(), parser.getLinesPerPage());
         List<Component> components = page.getComponents();
         assertEquals("Should be 2 components on this page", 2, components.size());
         assertTrue(components.get(0) instanceof MultiPartBlock);

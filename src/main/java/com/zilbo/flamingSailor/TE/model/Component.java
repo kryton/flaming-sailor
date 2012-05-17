@@ -40,7 +40,6 @@ public abstract class Component implements Comparable<Component> {
 
         }
         return sb.toString();
-
     }
 
     public boolean isEmpty() {
@@ -61,6 +60,33 @@ public abstract class Component implements Comparable<Component> {
         List<Component> c = new ArrayList<>();
         c.addAll(pieces);
         return c;
+    }
+
+    /**
+     * remove a child component.
+     * this makes no effort to fix up geographic boundaries, and will fail silently if it doesn't exist.
+     * this also doesn't do a depth-wide search for the component.
+     *
+     * @param c the child to remove
+     */
+    public void removeChild(Component c) {
+        this.pieces.remove(c);
+        adjustGeom();
+    }
+
+
+
+    /**
+     * recalculate the geometery of the piece, based on the children of it.
+     */
+    protected void adjustGeom() {
+        geom = new Rectangle2D.Double();
+        if (pieces.size() > 0) {
+            geom = pieces.get(0).getGeom().getBounds2D();
+            for (int i = 1; i < pieces.size(); i++) {
+                geom = geom.createUnion(pieces.get(i).getGeom());
+            }
+        }
     }
 
     public int size() {
@@ -323,17 +349,20 @@ public abstract class Component implements Comparable<Component> {
     }
 
     public boolean onSameLine(Rectangle2D geom) {
+
         Double y1 = this.geom.getMinY();
         Double y3 = this.geom.getMaxY();
         Double y2 = geom.getMinY();
         Double y4 = geom.getMaxY();
 
         double yAveT = (y2 + y4) / 2;
-        if ((y1 <= yAveT) && (yAveT < y3)) {
+        //   double diff = (y4-y2)/4;
+        if ((y1 <= (yAveT)) && ((yAveT) < y3)) {
             return true;
         }
         yAveT = (y1 + y3) / 2;
         return (y2 <= yAveT) && (yAveT < y4);
+
     }
 
     public void dumpChildren(PrintStream out, int level) {
@@ -360,13 +389,18 @@ public abstract class Component implements Comparable<Component> {
         }
     }
 
-   // boolean isHeaderFooterComponent = false;
+    boolean isHeading = false;
 
-    /*
-    public void setHeaderFooterComponent(boolean flag) {
-   //     isHeaderFooterComponent = flag;
+    public boolean isHeading() {
+        return this.isHeading;
     }
-    */
 
+    public void setIsHeading(boolean flag) {
+        isHeading = flag;
+    }
+
+    public boolean isMultiLine() {
+        return false;
+    }
 
 }

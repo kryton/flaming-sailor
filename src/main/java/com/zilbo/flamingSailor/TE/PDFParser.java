@@ -4,6 +4,7 @@ import com.zilbo.flamingSailor.TE.model.PDLink;
 import com.zilbo.flamingSailor.TE.model.TextPage;
 import com.zilbo.flamingSailor.TE.model.TextPiece;
 import org.apache.log4j.Logger;
+import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -14,6 +15,7 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDDestination;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageXYZDestination;
+import org.apache.pdfbox.util.PDFOperator;
 import org.apache.pdfbox.util.PDFTextStripper;
 import org.apache.pdfbox.util.TextPosition;
 
@@ -65,6 +67,7 @@ public class PDFParser extends PDFTextStripper {
     private String fileName;   // for debugging purposes;
     double docAvgLeft = 0.0;
     double docAvgRight = 0.0;
+    double docAvgWidth = 0.0;
     long docLineCount = 0;
     Double docCharDensity = 0.0;
     double linesPerPage = 0.0;
@@ -126,11 +129,13 @@ public class PDFParser extends PDFTextStripper {
         for (TextPage page : textPageList) {
             double avgLeft = page.getAvgLeft();
             double avgRight = page.getAvgRight();
+            double avgWidth = page.getAvgWidth();
             long lineCount = page.getLineCount();
             Double charDensity = page.getCharDensity();
 
             if (lineCount > 0) {
                 docAvgLeft += avgLeft * lineCount;
+                docAvgWidth += avgWidth * lineCount;
                 docAvgRight += avgRight * lineCount;
                 docCharDensity += charDensity * lineCount;
                 docLineCount += lineCount;
@@ -156,6 +161,7 @@ public class PDFParser extends PDFTextStripper {
 
         docAvgLeft /= docLineCount;
         docAvgRight /= docLineCount;
+        docAvgWidth /= docLineCount;
         docCharDensity /= docLineCount;
         linesPerPage = docLineCount / textPageList.size();
         normalizeFontCounts(fontCounts);
@@ -165,7 +171,8 @@ public class PDFParser extends PDFTextStripper {
             page.constructPageComponents(highestFreqSize,
                     this.minFontSize, this.maxFontSize,
                     normalizedFontCounts, normalizedFonts, normalizedSizes,
-                    docAvgLeft, docAvgRight, docCharDensity, linesPerPage);
+                    docAvgLeft, docAvgRight, docAvgWidth,
+                    docCharDensity, linesPerPage);
         }
 
         return textPageList;
@@ -258,7 +265,7 @@ public class PDFParser extends PDFTextStripper {
                 PDFont font = t.getFont();
                 PDFontDescriptor fontDescriptor = font.getFontDescriptor();
 
-                w.setFontDescriptor(fontDescriptor);
+             //   w.setFontDescriptor(fontDescriptor);
                 if (fontDescriptor == null) {
                     w.setFontName("UNKNOWN");
                 } else {
@@ -376,44 +383,12 @@ public class PDFParser extends PDFTextStripper {
         currentPage = null;
     }
 
-    public static BufferedImage makeCompatible(BufferedImage img) throws IOException {
-        // Allocate the new image
-        BufferedImage dstImage = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
-
-        // Check if the ColorSpace is RGB and the TransferType is BYTE.
-        // Otherwise this fast method does not work as expected
-        ColorModel cm = img.getColorModel();
-        if (cm.getColorSpace().getType() == ColorSpace.TYPE_RGB && img.getRaster().getTransferType() == DataBuffer.TYPE_BYTE) {
-            //Allocate arrays
-            int len = img.getWidth() * img.getHeight();
-            byte[] src = new byte[len * 3];
-            int[] dst = new int[len];
-
-            // Read the src image data into the array
-            img.getRaster().getDataElements(0, 0, img.getWidth(), img.getHeight(), src);
-
-            // Convert to INT_RGB
-            int j = 0;
-            for (int i = 0; i < len; i++) {
-                dst[i] = (((int) src[j++] & 0xFF) << 16) |
-                        (((int) src[j++] & 0xFF) << 8) |
-                        (((int) src[j++] & 0xFF));
-            }
-
-            // Set the dst image data
-            dstImage.getRaster().setDataElements(0, 0, img.getWidth(), img.getHeight(), dst);
-
-            return dstImage;
-        }
-
-        ColorConvertOp op = new ColorConvertOp(null);
-        op.filter(img, dstImage);
-
-        return dstImage;
-    }
-
     public double getDocAvgLeft() {
         return docAvgLeft;
+    }
+
+    public double getDocAvgWidth() {
+        return docAvgWidth;
     }
 
     public double getDocAvgRight() {
@@ -443,4 +418,108 @@ public class PDFParser extends PDFTextStripper {
     public Map<String, Double> getNormalizedFonts() {
         return normalizedFonts;
     }
+
+    /*        /
+    @Override
+
+    protected void processOperator(PDFOperator operator, List<COSBase> arguments) throws IOException {
+        switch (operator.getOperation()) {
+            case "w":
+                logger.info("Width:" + arguments.get(0));
+                break;
+            case "l":
+                logger.info("line To: (" + arguments.get(0) + "," + arguments.get(1) + ")");
+                break;
+            case "m":
+                logger.info("move To: (" + arguments.get(0) + "," + arguments.get(1) + ")");
+                break;
+            case "h":
+                logger.info("close path");
+                break;
+            case "s":
+                logger.info("close/stroke");
+                break;
+            case "f":
+            case "F":
+            case "f*":
+            case "B":
+            case "B*":
+            case "b":
+            case "b*":
+                logger.info("fill path");
+                break;
+            case "n":
+                logger.info("no-op path (changes clipping path)");
+                break;
+            case "W":
+                logger.info("set clipping path");
+                break;
+            case "CS":
+             //   logger.info("stroking color space:" + arguments.get(0));
+                break;
+            case "cs":
+            //    logger.info("non-stroking color space:" + arguments.get(0));
+                break;
+            case "SC":
+         //       logger.info("stroking color:" + arguments.get(0));
+                break;
+            case "sc":
+         //       logger.info("non-stroking color :" + arguments.get(0));
+                break;
+            case "G":
+            case "RG":
+            case "K":
+           //     logger.info("stroking color:" + operator.getOperation() + ":" + arguments);
+                break;
+            case "g":
+            case "rg":
+            case "k":
+            //    logger.info("non-stroking color:" + operator.getOperation() + ":" + arguments);
+                break;
+            case "S":
+                logger.info("stroke");
+                break;
+            case "c":
+                logger.info("curve To: (" + arguments.get(4) + "," + arguments.get(5) + ") - via (" +
+                        arguments.get(0) + "," + arguments.get(1) + ") (" +
+                        arguments.get(2) + "," + arguments.get(3) + ")");
+                break;
+            case "v":
+                logger.info("curve To: (" + arguments.get(2) + "," + arguments.get(3) + ") - via (" +
+                        arguments.get(0) + "," + arguments.get(1) + ")");
+                break;
+            case "re":
+                logger.info("rectangle: (" + arguments.get(0) + "," + arguments.get(1) + ") - w (" +
+                        arguments.get(2) + " h" + arguments.get(3));
+                break;
+            case "q":  // push graphic state
+            case "Q":  // pop graphic state
+            case "GS":
+            case "gs":
+                break;
+            // text commands
+            case "Tj":  //show a text line
+            case "TJ":  //show a text line
+            //    logger.info("Text:" + arguments);
+                break;
+            case "BT":  // begin text
+            case "ET":  // end text
+            case "Tc": // charspace
+            case "Tw": // wordspace
+            case "Tz": // scale
+            case "Tf": // fontsize
+            case "TL": // Text leading (vertical distance between baselines of adjacent lines
+            case "Tr": // render
+            case "Ts": // rise (super/subscript)
+            case "Td": // start of next line
+            case "TD": // start of next line
+            case "Tm": // text matrix
+            case "T*": // move to start of line
+                break;
+            default:
+                logger.info(operator.getOperation() + "\t" + arguments);
+        }
+        super.processOperator(operator, arguments);
+    }
+    /**/
 }

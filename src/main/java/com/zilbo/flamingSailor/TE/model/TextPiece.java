@@ -30,7 +30,7 @@ public final class TextPiece extends Component {
     double m_xScale;                  //the X-scale of the text piece
     double m_yScale;                  //the Y-scale of the text piece
 
-    boolean m_superScriptBeginning = false;      //whether this text piece begins with a superscript
+   // boolean m_superScriptBeginning = false;      //whether this text piece begins with a superscript
     //   boolean m_sparseLine = true;                 //whether this text piece is a sparse line or not
     // boolean m_onlyPiece_PhysicalLine = true;     //whether this text piece is the only piece in the physical line in document. We need this attribute to label table caption lines....
 
@@ -41,7 +41,7 @@ public final class TextPiece extends Component {
     double m_fontSize;                            //the font size of this text piece
 
     String m_fontName;                           //the font name of this text piece.
-    PDFontDescriptor fontDescriptor;
+    //PDFontDescriptor fontDescriptor;
     String m_text;                               //the text content of this text piece
     //  boolean hadZeroWidth;
 
@@ -54,13 +54,16 @@ public final class TextPiece extends Component {
         this.type = new Unknown();
     }
 
+    /*
     public PDFontDescriptor getFontDescriptor() {
         return fontDescriptor;
     }
-
+    */
+     /*
     public void setFontDescriptor(PDFontDescriptor fontDescriptor) {
         this.fontDescriptor = fontDescriptor;
     }
+    */
 
 
     /**
@@ -152,9 +155,11 @@ public final class TextPiece extends Component {
      *
      * @return the superScriptBeginning
      */
+    /*
     public boolean isSuperScriptBeginning() {
         return m_superScriptBeginning;
     }
+    */
 
     /**
      * Judges whether a text line is a sparse line or not
@@ -191,9 +196,11 @@ public final class TextPiece extends Component {
      *
      * @param superScriptBeginning the superScriptBeginning to set
      */
+    /*
     public void setSuperScriptBeginning(boolean superScriptBeginning) {
         m_superScriptBeginning = superScriptBeginning;
     }
+    */
 
     /**
      * Sets a text piece as a sparse line
@@ -214,7 +221,10 @@ public final class TextPiece extends Component {
      */
     public void setText(String text) {
         //m_text = new String(ModifiedASCIIFoldingFilter.foldToASCII(text.toCharArray(), text.length()));
-        m_text = text;
+    //    m_text = text;
+        // the following is to deal with non-breaking spaces (Char(160)).
+       m_text= text.replace( (char)( 160),' ');
+
     }
 
     /**
@@ -280,10 +290,12 @@ public final class TextPiece extends Component {
      * @param text the string to be checked
      * @return the boolean result after checking
      */
+    /*
     public boolean isHTMLCode(String text) {
         return text.startsWith("c");
 
     }
+    */
 
 
     /**
@@ -389,7 +401,9 @@ public final class TextPiece extends Component {
     public String getCategorizedText() {
         return type.getCategorizedText();
     }
-
+    public TextType getCategory() {
+        return type;
+    }
     public void setCategory(TextType typer) {
         type = typer;
     }
@@ -426,7 +440,10 @@ public final class TextPiece extends Component {
     }
 
     public boolean isEmpty() {
-        return getType().isEmpty();
+        if ( getType().isUnknown()) {
+            categorize();
+        }
+        return getType().isEmpty() ;
     }
 
     @Override

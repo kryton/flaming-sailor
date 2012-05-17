@@ -2,8 +2,6 @@ package com.zilbo.flamingSailor.TE.model;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.awt.geom.Line2D;
-import java.awt.geom.Rectangle2D;
 import java.io.PrintStream;
 import java.util.Map;
 
@@ -62,8 +60,8 @@ public class TextLine extends Component {
         if (width() == 0) {
             return 1.0;
         }
-        String text=this.getText();
-        text = text.replaceAll("[^\\w]","");
+        String text = this.getText();
+        text = text.replaceAll("[^\\w]", "");
         return (1.0) * (text.length()) / this.width();
     }
 
@@ -81,14 +79,6 @@ public class TextLine extends Component {
         return height / length;
     }
 
-    boolean isHeading = false;
-
-    public boolean isHeading() {
-        return this.isHeading;
-    }
-    public void setIsHeading(boolean flag) {
-        isHeading = flag;
-    }
 
     double lineIsRegularProbability = 0.0;
 
@@ -101,7 +91,7 @@ public class TextLine extends Component {
             Map<Integer, Double> normalizedSizes,
             double textLength) {
         if (textLength == 0) {
-            lineIsRegularProbability= 0;
+            lineIsRegularProbability = 0;
             return;
         }
         Double probability = 0.0;
@@ -118,12 +108,12 @@ public class TextLine extends Component {
                 }
                 */
                 Double TPprob = normalizedFonts.get(tp.getFontName());
-                Double sizeProb = normalizedSizes.get((int)Math.round(tp.getHeight()));
-                if ( sizeProb!=null) {
-                    if (TPprob!=null) {
+                Double sizeProb = normalizedSizes.get((int) Math.round(tp.getHeight()));
+                if (sizeProb != null) {
+                    if (TPprob != null) {
                         TPprob *= sizeProb;
                     } else {
-                        TPprob=sizeProb;
+                        TPprob = sizeProb;
                     }
                 }
                 if (TPprob != null) {
@@ -144,6 +134,7 @@ public class TextLine extends Component {
                                Map<Integer, Double> normalizedSizes,
                                double avgLeft,
                                double avgRight,
+                               double avgWidth,
                                double charDensity,
                                double linesPerPage) {
         String text = getText();
@@ -210,4 +201,5 @@ public class TextLine extends Component {
             component.dumpChildren(out, level + 1);
         }
     }
+
 }
