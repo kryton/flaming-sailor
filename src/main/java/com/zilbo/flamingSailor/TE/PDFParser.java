@@ -500,7 +500,11 @@ public class PDFParser extends PDFTextStripper {
             // text commands
             case "Tj":  //show a text line
             case "TJ":  //show a text line
+                logger.info(operator.getOperation() + "\t" + arguments);
             //    logger.info("Text:" + arguments);
+                break;
+            case "Ts": // rise (super/subscript)
+                logger.info(operator.getOperation() + "\t" + arguments);
                 break;
             case "BT":  // begin text
             case "ET":  // end text
@@ -510,11 +514,12 @@ public class PDFParser extends PDFTextStripper {
             case "Tf": // fontsize
             case "TL": // Text leading (vertical distance between baselines of adjacent lines
             case "Tr": // render
-            case "Ts": // rise (super/subscript)
+
             case "Td": // start of next line
             case "TD": // start of next line
             case "Tm": // text matrix
             case "T*": // move to start of line
+                logger.info(operator.getOperation() + "\t" + arguments);
                 break;
             default:
                 logger.info(operator.getOperation() + "\t" + arguments);

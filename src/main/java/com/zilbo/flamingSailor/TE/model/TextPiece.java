@@ -328,7 +328,8 @@ public final class TextPiece extends Component {
         // double dist = Math.abs(this.geom.getMinX() - t.geom.getMinX());   /* this one really shouldn't occur */
         double dist2 = Math.abs(this.getGeom().getMaxX() - t.getGeom().getMinX());
         // sometimes getWidthOfSpace is zero. in this case we explicitly test for it
-        if (dist2 < (Math.max(1.0,this.getWidthOfSpace()) +0.15)) {
+        double distAllowed = Math.max(1.0,this.getWidthOfSpace()-0.15);
+        if (dist2 < (distAllowed)) {
             return true;
         }
 

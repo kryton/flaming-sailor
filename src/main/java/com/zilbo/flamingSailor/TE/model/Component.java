@@ -75,7 +75,6 @@ public abstract class Component implements Comparable<Component> {
     }
 
 
-
     /**
      * recalculate the geometery of the piece, based on the children of it.
      */
@@ -348,13 +347,32 @@ public abstract class Component implements Comparable<Component> {
         return onSameLine(c.getGeom());
     }
 
-    public boolean onSameLine(Rectangle2D geom) {
+    public boolean onSameLine(Rectangle2D otherGeom) {
 
         Double y1 = this.geom.getMinY();
         Double y3 = this.geom.getMaxY();
-        Double y2 = geom.getMinY();
-        Double y4 = geom.getMaxY();
+        Double y2 = otherGeom.getMinY();
+        Double y4 = otherGeom.getMaxY();
 
+        // we have some kind of crossover.
+        if (y1 <= y4 && y1 >= y2) {
+            // AND the boxes are touching
+            if (Math.abs(this.geom.getMinX() - otherGeom.getMaxX()) < 0.5 || (this.geom.getMaxX() - otherGeom.getMinX()) < 0.5) {
+                // assume it's a super/subscript letter and call it the same line.
+                return true;
+            }
+
+        }
+        // we have some kind of crossover.
+        if (y2 <= y3 && y2 >= y1) {
+            // AND the boxes are touching
+         //   logger.info(this.geom.getMinX() - otherGeom.getMaxX());
+            if (Math.abs(this.geom.getMinX() - otherGeom.getMaxX()) < 0.5 || (this.geom.getMaxX() - otherGeom.getMinX()) < 0.5) {
+                // assume it's a super/subscript letter and call it the same line.
+                return true;
+            }
+
+        }
         double yAveT = (y2 + y4) / 2;
         //   double diff = (y4-y2)/4;
         if ((y1 <= (yAveT)) && ((yAveT) < y3)) {

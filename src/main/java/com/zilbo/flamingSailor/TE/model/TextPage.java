@@ -63,18 +63,6 @@ public class TextPage {
         footer = new MultiPartBlock(-2);
     }
 
-    /*
-    public void constructPages(double avgSize,
-                               Map<String, Map<Double, Double>> normalizedFontCounts,
-                               Map<String, Double> normalizedFonts,
-                               Map<Double, Double> normalizedSizes) {
-        //Collections.sort(pagePieces, new TextPiece.top_comparator());
-        //  constructLines();
-        constructMLBS();
-        constructComponents();
-    }
-    */
-
     public void constructPageComponents(double highestFreqSize,
                                         double minFontSize,
                                         double maxFontSize,
@@ -333,6 +321,7 @@ public class TextPage {
     public void processPage(List<TextPiece> pieces, Map<String, Map<Integer, Long>> fontCounts) {
 
         pagePieces = new SortedList<>(new Component.topleft_comparator());
+      //  pagePieces = new ArrayList<>();
         this.fontCounts = fontCounts;
         lines = new ArrayList<>();
 
@@ -344,7 +333,7 @@ public class TextPage {
 
         shrinkPieces(pieces);
         // eventually we want to go back to JDK-lists.. and we will need this then
-        //   Collections.sort(pagePieces);
+//           Collections.sort(pagePieces);
         constructLines();
 
     }
@@ -790,13 +779,16 @@ public class TextPage {
         return lineCount;
     }
 
-    // used for testcases
-    int getLineSize() {
-        return this.lines.size();
-    }
 
     public long getNextComponentID() {
         return componentID++;
     }
-
+        // used for testcases
+    int getLineSize() {
+        return this.lines.size();
+    }
+    // also used for testcases
+    List<TextLine> getLines() {
+        return this.lines;
+    }
 }
