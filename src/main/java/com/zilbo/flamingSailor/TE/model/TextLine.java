@@ -183,23 +183,29 @@ public class TextLine extends Component {
         if (sb.length() < 20) {
             sb.append(StringUtils.repeat(' ', 20 - sb.length()));
         }
-        sb.append(' ');
+        sb.append('\t');
 
-        sb.append(getRectangleDebug()).append(" ");
+        sb.append(getRectangleDebug()).append("\t");
 
 
-        sb.append(getText().replace("\n", "\n" + StringUtils.repeat(' ', 43)));
+        out.print(sb.toString() +" " + normHistoGramToString() +
+                String.format(" H:%5.1f W:%6.1f D:%4.2f P:%4.2f", height(), width(), density(), getLineIsRegularProbability()) +
+                "\t");
 
         String text;
-        if (sb.length() > 256) {
-            text = sb.substring(0, 256 - 4) + " ...";
-        } else {
-            text = sb.toString();
+        text = getText().replace("\n", "\n" + StringUtils.repeat(' ', 43));
+
+        if (text.length() > 256) {
+            text = text.substring(0, 256 - 4) + " ...";
+
         }
+
         out.println(text);
+      /*
         for (Component component : getChildren()) {
             component.dumpChildren(out, level + 1);
         }
+        */
     }
 
 }

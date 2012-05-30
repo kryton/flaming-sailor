@@ -3,7 +3,6 @@ package com.zilbo.flamingSailor.TE.model;
 import com.zilbo.flamingSailor.TE.model.TextType.TextType;
 import com.zilbo.flamingSailor.TE.model.TextType.Unknown;
 import org.apache.log4j.Logger;
-import org.apache.pdfbox.pdmodel.font.PDFontDescriptor;
 
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public final class TextPiece extends Component {
     double m_xScale;                  //the X-scale of the text piece
     double m_yScale;                  //the Y-scale of the text piece
 
-   // boolean m_superScriptBeginning = false;      //whether this text piece begins with a superscript
+    // boolean m_superScriptBeginning = false;      //whether this text piece begins with a superscript
     //   boolean m_sparseLine = true;                 //whether this text piece is a sparse line or not
     // boolean m_onlyPiece_PhysicalLine = true;     //whether this text piece is the only piece in the physical line in document. We need this attribute to label table caption lines....
 
@@ -44,7 +43,7 @@ public final class TextPiece extends Component {
     //PDFontDescriptor fontDescriptor;
     String m_text;                               //the text content of this text piece
     //  boolean hadZeroWidth;
-
+    long[] histogram;
 
     public TextPiece(long id) {
         super(id);
@@ -52,6 +51,10 @@ public final class TextPiece extends Component {
         m_text = "";
         //      hadZeroWidth = false;
         this.type = new Unknown();
+        histogram= new long[HIST_OTHER+1];
+        for ( int i = 0;i<histogram.length;i++) {
+            histogram[i]=0L;
+        }
     }
 
     /*
@@ -59,7 +62,7 @@ public final class TextPiece extends Component {
         return fontDescriptor;
     }
     */
-     /*
+    /*
     public void setFontDescriptor(PDFontDescriptor fontDescriptor) {
         this.fontDescriptor = fontDescriptor;
     }
@@ -221,9 +224,9 @@ public final class TextPiece extends Component {
      */
     public void setText(String text) {
         //m_text = new String(ModifiedASCIIFoldingFilter.foldToASCII(text.toCharArray(), text.length()));
-    //    m_text = text;
+        //    m_text = text;
         // the following is to deal with non-breaking spaces (Char(160)).
-       m_text= text.replace( (char)( 160),' ');
+        m_text = text.replace((char) (160), ' ');
 
     }
 
@@ -328,7 +331,7 @@ public final class TextPiece extends Component {
         // double dist = Math.abs(this.geom.getMinX() - t.geom.getMinX());   /* this one really shouldn't occur */
         double dist2 = Math.abs(this.getGeom().getMaxX() - t.getGeom().getMinX());
         // sometimes getWidthOfSpace is zero. in this case we explicitly test for it
-        double distAllowed = Math.max(1.0,this.getWidthOfSpace()-0.15);
+        double distAllowed = Math.max(1.0, this.getWidthOfSpace() - 0.15);
         if (dist2 < (distAllowed)) {
             return true;
         }
@@ -402,16 +405,54 @@ public final class TextPiece extends Component {
     public String getCategorizedText() {
         return type.getCategorizedText();
     }
+
     public TextType getCategory() {
         return type;
     }
+
     public void setCategory(TextType typer) {
         type = typer;
     }
 
+
     public void categorize() {
+        for ( int i=0; i<histogram.length;i++) {
+            histogram[i]=0L;
+        }
+
         type = TextType.categorize(this);
+        for (Character c : m_text.toCharArray()) {
+            if (Character.isDigit(c)) {
+                histogram[HIST_DIGIT]++;
+                continue;
+            }
+            if (Character.isLowerCase(c)) {
+                histogram[HIST_LOWER]++;
+                continue;
+            }
+            if (Character.isSpaceChar(c)) {
+                histogram[HIST_SPACE]++;
+                continue;
+            }
+            if (Character.isUpperCase(c)) {
+                histogram[HIST_UPPER]++;
+                continue;
+            }
+            if ('-' == c
+                    || '.' == c
+                    || ':' == c
+                    || '\u00B7' == c
+                    || '\u0387' == c
+                    || '-' == c
+                    || '\u06DD' == c
+                    || '\u06DE' == c) {
+                histogram[HIST_PUNCT]++;
+                continue;
+            }
+            histogram[HIST_OTHER]++;
+        }
     }
+
 
     public boolean isTOCPart(TextPiece bit) {
         return (m_text.endsWith(". . ") || (m_text.endsWith(". .") || (m_text.endsWith("... ")) || (m_text.endsWith("....")))
@@ -441,10 +482,10 @@ public final class TextPiece extends Component {
     }
 
     public boolean isEmpty() {
-        if ( getType().isUnknown()) {
+        if (getType().isUnknown()) {
             categorize();
         }
-        return getType().isEmpty() ;
+        return getType().isEmpty();
     }
 
     @Override
@@ -452,4 +493,10 @@ public final class TextPiece extends Component {
         assert false;
         return -1;
     }
+    @Override
+
+    public long[] getHistogram() {
+        return histogram;
+    }
+
 }

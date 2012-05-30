@@ -1,5 +1,6 @@
 package com.zilbo.flamingSailor.TE;
 
+import com.zilbo.flamingSailor.TE.model.Component;
 import com.zilbo.flamingSailor.TE.model.PDLink;
 import com.zilbo.flamingSailor.TE.model.TextPage;
 import com.zilbo.flamingSailor.TE.model.TextPiece;
@@ -71,6 +72,7 @@ public class PDFParser extends PDFTextStripper {
     long docLineCount = 0;
     Double docCharDensity = 0.0;
     double linesPerPage = 0.0;
+    Double[] normalizedHistogram=null;
 
     /**
      * Constructor
@@ -125,14 +127,14 @@ public class PDFParser extends PDFTextStripper {
         // 3. construct higher order components
         //
         TextPage.removeBoilerplate(textPageList, TextPage.LEVENSHTEIN_DISTANCE);
-
+        long histogram[] =null;
         for (TextPage page : textPageList) {
             double avgLeft = page.getAvgLeft();
             double avgRight = page.getAvgRight();
             double avgWidth = page.getAvgWidth();
             long lineCount = page.getLineCount();
             Double charDensity = page.getCharDensity();
-
+            histogram = Component.mergeHistogram(page.getHistogram(),histogram);
             if (lineCount > 0) {
                 docAvgLeft += avgLeft * lineCount;
                 docAvgWidth += avgWidth * lineCount;
@@ -165,14 +167,16 @@ public class PDFParser extends PDFTextStripper {
         docCharDensity /= docLineCount;
         linesPerPage = docLineCount / textPageList.size();
         normalizeFontCounts(fontCounts);
-
-
+        normalizedHistogram = Component.getNormalizedHistogram(histogram);
+        logger.info( Component.normHistoGramToString(normalizedHistogram)+
+              String.format(" H:%5.1f W:%6.1f D:%4.2f P:%4.2f",(double)highestFreqSize,docAvgWidth,docCharDensity,1.0));
         for (TextPage page : textPageList) {
             page.constructPageComponents(highestFreqSize,
                     this.minFontSize, this.maxFontSize,
                     normalizedFontCounts, normalizedFonts, normalizedSizes,
                     docAvgLeft, docAvgRight, docAvgWidth,
-                    docCharDensity, linesPerPage);
+                    docCharDensity, linesPerPage,
+                    normalizedHistogram);
         }
 
         return textPageList;
@@ -527,4 +531,5 @@ public class PDFParser extends PDFTextStripper {
         super.processOperator(operator, arguments);
     }
     /**/
+
 }

@@ -73,7 +73,8 @@ public class TextPage {
                                         double avgRight,
                                         double avgWidth,
                                         double charDensity,
-                                        double linesPerPage) {
+                                        double linesPerPage,
+                                        Double[] normalizedHistogram) {
 
         components = new ArrayList<>();
 
@@ -88,8 +89,9 @@ public class TextPage {
                     normalizedFontCounts, normalizedFonts, normalizedSizes, avgLeft, avgRight, avgWidth, charDensity, linesPerPage);
 
             // for regular lines we would be expecting a p() of over 40%
-
+            Double[] lineNormHistogram = l.getNormalizedHistogram();
             double thisHeight = l.height();
+
             double thisDensity = l.density();
             if (l.getLineIsRegularProbability() < 0.3 && Math.round(thisHeight) >= highestFreqSize) {
                 if (thisDensity >= (charDensity - 0.02) || thisHeight - highestFreqSize > 2.0) {
@@ -98,7 +100,7 @@ public class TextPage {
                         l.setIsHeading(true);
                     }
                     // or they are in the center of the line
-                    if (l.width() < avgWidth/3){
+                    if (l.width() < avgWidth / 3) {
                         l.setIsHeading(true);
                     }
                     /*
@@ -321,7 +323,7 @@ public class TextPage {
     public void processPage(List<TextPiece> pieces, Map<String, Map<Integer, Long>> fontCounts) {
 
         pagePieces = new SortedList<>(new Component.topleft_comparator());
-      //  pagePieces = new ArrayList<>();
+        //  pagePieces = new ArrayList<>();
         this.fontCounts = fontCounts;
         lines = new ArrayList<>();
 
@@ -338,20 +340,26 @@ public class TextPage {
 
     }
 
+    long histogram[] = null;
+
     protected void calcLineStats() {
         lineCount = lines.size();
-
+        histogram = null;
         for (TextLine l : lines) {
             avgLeft += l.getGeom().getMinX();
             avgRight += l.getGeom().getMaxX();
             charDensity += l.density();
             avgWidth += l.getGeom().getWidth();
+
+            histogram = l.mergeHistogram(histogram);
         }
         avgLeft /= lineCount;
         avgRight /= lineCount;
         charDensity /= lineCount;
         avgWidth /= lineCount;
-
+    }
+    public long[] getHistogram() {
+        return histogram;
     }
 
     public void dumpPage(PrintWriter pw) {
@@ -783,10 +791,12 @@ public class TextPage {
     public long getNextComponentID() {
         return componentID++;
     }
-        // used for testcases
+
+    // used for testcases
     int getLineSize() {
         return this.lines.size();
     }
+
     // also used for testcases
     List<TextLine> getLines() {
         return this.lines;

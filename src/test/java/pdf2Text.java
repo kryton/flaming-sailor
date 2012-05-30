@@ -24,7 +24,8 @@ public class pdf2Text {
         //filename= "../test/lineSortTest.pdf";
 
         filename = "../test/linedTableTest.pdf";
-        filename = "../test/imageTest.pdf";
+        filename = "/data/sedar/2012-03-01/01867105-00000001-00021840-C@#SEDAR#DOWNLOAD#UrEnergy#20120301TechReport-PDF.pdf";
+        //filename = "../test/imageTest.pdf";
         if (args.length > 1) {
             filename = args[0];
         }

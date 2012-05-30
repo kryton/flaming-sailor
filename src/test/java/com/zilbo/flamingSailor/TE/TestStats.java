@@ -45,12 +45,14 @@ public class TestStats extends TestCase {
     public void testTable1() {
         assertTrue(pages.size() > 12);
         TextPage page = pages.get(11);
+        Double hist[] = Component.getNormalizedHistogram(page.getHistogram());
         page.constructPageComponents(parser.highestFreqSize,
                 parser.getMinFontSize(), parser.getMaxFontSize(),
                 parser.getNormalizedFontCounts(), parser.getNormalizedFonts(),
                 parser.getNormalizedSizes(),
                 parser.getDocAvgLeft(), parser.getDocAvgRight(),  parser.getDocAvgWidth(),
-                parser.getDocCharDensity(), parser.getLinesPerPage());
+                parser.getDocCharDensity(), parser.getLinesPerPage(),
+                hist);
         List<Component> components = page.getComponents();
         assertEquals("Should be 2 components on this page", 2, components.size());
         assertTrue(components.get(0) instanceof MultiPartBlock);

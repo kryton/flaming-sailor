@@ -27,6 +27,12 @@ public abstract class Component implements Comparable<Component> {
     Rectangle2D geom;
     Long id;
     List<Component> pieces;
+    public static final int HIST_SPACE = 0;
+    public static final int HIST_DIGIT = 1;
+    public static final int HIST_UPPER = 2;
+    public static final int HIST_LOWER = 3;
+    public static final int HIST_PUNCT = 4;
+    public static final int HIST_OTHER = 5;
 
 
     public String getText() {
@@ -366,7 +372,7 @@ public abstract class Component implements Comparable<Component> {
         // we have some kind of crossover.
         if (y2 <= y3 && y2 >= y1) {
             // AND the boxes are touching
-         //   logger.info(this.geom.getMinX() - otherGeom.getMaxX());
+            //   logger.info(this.geom.getMinX() - otherGeom.getMaxX());
             if (Math.abs(this.geom.getMinX() - otherGeom.getMaxX()) < 0.5 || (this.geom.getMaxX() - otherGeom.getMinX()) < 0.5) {
                 // assume it's a super/subscript letter and call it the same line.
                 return true;
@@ -392,9 +398,9 @@ public abstract class Component implements Comparable<Component> {
         if (sb.length() < 20) {
             sb.append(StringUtils.repeat(' ', 20 - sb.length()));
         }
-        sb.append(' ');
-        sb.append(getRectangleDebug()).append(" ");
-        sb.append(getText().replace("\n", "\n" + StringUtils.repeat(' ', 43)));
+        sb.append('\t');
+        sb.append(getRectangleDebug()).append(" \t");
+      //  sb.append(getText().replace("\n", "\n" + StringUtils.repeat(' ', 43)));
         String text;
         if (sb.length() > 256) {
             text = sb.substring(0, 256 - 4) + " ...";
@@ -421,4 +427,66 @@ public abstract class Component implements Comparable<Component> {
         return false;
     }
 
+    public long[] getHistogram() {
+        long[] histogram = new long[HIST_OTHER + 1];
+        for (int i = 0; i < histogram.length; i++) {
+            histogram[i] = 0L;
+        }
+        for (Component c : this.getChildren()) {
+            long[] histC = c.getHistogram();
+            for (int i = 0; i < histogram.length; i++) {
+                histogram[i] += histC[i];
+            }
+        }
+        return histogram;
+    }
+
+    public Double[] getNormalizedHistogram() {
+        return getNormalizedHistogram(this.getHistogram());
+    }
+
+    public static Double[] getNormalizedHistogram(long[] histogram) {
+        double total = 0.0;
+        for (long aHistogram : histogram) {
+            total += aHistogram;
+        }
+        Double[] normalized = new Double[histogram.length];
+        for (int i = 0; i < histogram.length; i++) {
+            normalized[i] = (1.0) * histogram[i] / total;
+        }
+        return normalized;
+    }
+
+    public long[] mergeHistogram(long[] hist) {
+        if (hist == null) {
+            return getHistogram();
+        }
+        return mergeHistogram(getHistogram(), hist);
+    }
+
+    public static long[] mergeHistogram(long[] hist1, long[] hist2) {
+        if (hist2 == null) {
+            return hist1;
+        }
+        if (hist1 == null) {
+            return hist2;
+        }
+        long result[] = new long[hist1.length];
+        for (int i = 0; i < hist1.length; i++) {
+            result[i] = hist1[i] + hist2[i];
+        }
+        return result;
+    }
+
+    public String normHistoGramToString() {
+        return normHistoGramToString(getNormalizedHistogram());
+    }
+
+    public static String normHistoGramToString(Double[] nHist) {
+
+        return (String.format("Hist: UC:%4.2f LC:%4.2f DI:%4.2f SP:%4.2f PU:%4.2f O:%4.2f",
+                nHist[HIST_UPPER], nHist[HIST_LOWER], nHist[HIST_DIGIT],
+                nHist[HIST_SPACE], nHist[HIST_PUNCT], nHist[HIST_OTHER])
+        );
+    }
 }
